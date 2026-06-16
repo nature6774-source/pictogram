@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>✈️ 공항 픽토그램 퀴즈</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans KR',sans-serif;background:#f1f5f9;min-height:100vh;padding:16px;user-select:none;}
+.page{max-width:640px;margin:0 auto;}
+
+/* ── 등록 화면 ── */
+#setupPage h1{text-align:center;color:#1d4ed8;font-size:1.4rem;margin-bottom:4px;}
+#setupPage .sub{text-align:center;color:#64748b;font-size:.85rem;margin-bottom:6px;font-weight:700;}
+.prog-bar-wrap{max-width:400px;margin:0 auto 16px;background:#e2e8f0;border-radius:99px;height:10px;overflow:hidden;}
+.prog-bar{height:10px;background:#2563eb;border-radius:99px;transition:width .3s;}
+.prog-txt{text-align:center;font-weight:900;color:#1d4ed8;font-size:.9rem;margin-bottom:14px;}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:20px;}
+
+.card{
+  background:white;border-radius:16px;border:3px dashed #cbd5e1;
+  padding:14px 10px;display:flex;flex-direction:column;align-items:center;gap:10px;
+  cursor:pointer;transition:all .2s;position:relative;min-height:140px;justify-content:center;
+}
+.card:active{transform:scale(.97);}
+.card:hover{border-color:#3b82f6;background:#eff6ff;}
+.card.done{border:3px solid #22c55e;background:#f0fdf4;cursor:default;}
+.card .lbl{font-weight:900;font-size:1.05rem;color:#1e293b;text-align:center;}
+.card .prev{width:80px;height:80px;object-fit:contain;display:none;border-radius:8px;}
+.card.done .prev{display:block;}
+.card .add-icon{font-size:2rem;color:#cbd5e1;line-height:1;}
+.card.done .add-icon{display:none;}
+.card .ck{position:absolute;top:7px;right:9px;color:#22c55e;font-size:1rem;display:none;font-weight:900;}
+.card.done .ck{display:block;}
+.card input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.card.done input[type=file]{pointer-events:none;}
+
+.start-btn{
+  width:100%;padding:18px;background:#2563eb;color:white;font-weight:900;font-size:1.1rem;
+  border:none;border-radius:18px;cursor:pointer;box-shadow:0 5px 0 #1d4ed8;
+  transition:all .15s;letter-spacing:.02em;
+}
+.start-btn:disabled{background:#94a3b8;box-shadow:0 5px 0 #64748b;cursor:not-allowed;}
+.start-btn:not(:disabled):active{transform:translateY(3px);box-shadow:0 2px 0 #1d4ed8;}
+
+/* ── 퀴즈 화면 ── */
+#quizPage{display:none;}
+#quizPage h1{text-align:center;color:#1d4ed8;font-size:1.3rem;margin-bottom:4px;}
+#quizPage .sub{text-align:center;color:#64748b;font-size:.78rem;margin-bottom:14px;font-weight:700;}
+
+.dots-wrap{background:white;border-radius:14px;padding:12px 8px;margin-bottom:14px;border:1px solid #e2e8f0;position:relative;}
+.dots-line{position:absolute;left:16px;right:16px;top:22px;height:4px;background:#e2e8f0;z-index:0;}
+.dots-row{display:flex;justify-content:space-between;align-items:flex-start;position:relative;}
+.dot{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:3px;}
+.dot-c{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:.68rem;font-weight:900;background:#cbd5e1;color:#64748b;transition:all .3s;}
+.dot-c.done{background:#22c55e;color:white;transform:scale(1.1);}
+.dot-c.cur{background:#2563eb;color:white;transform:scale(1.1);box-shadow:0 0 0 4px #bfdbfe;}
+.dot-lbl{font-size:.58rem;color:#94a3b8;font-weight:700;text-align:center;max-width:38px;line-height:1.2;}
+
+.mission{background:#1d4ed8;color:white;border-radius:16px;padding:14px;margin-bottom:14px;border-bottom:4px solid #1e3a8a;}
+.m-tag{background:#1e3a8a;color:#bfdbfe;font-size:.68rem;font-weight:900;padding:3px 10px;border-radius:99px;display:inline-block;margin-bottom:7px;}
+.mission p{font-size:.95rem;font-weight:900;line-height:1.5;}
+
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.opt{border:4px solid #cbd5e1;background:white;border-radius:16px;height:148px;padding:10px;
+  cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;}
+.opt:hover{border-color:#3b82f6;box-shadow:0 4px 12px rgba(59,130,246,.2);}
+.opt img{max-width:100%;max-height:100%;object-fit:contain;pointer-events:none;}
+.opt.correct{border:8px solid #22c55e;background:#f0fdf4;transform:scale(.95);cursor:default;}
+.opt.wrong{border:8px solid #ef4444;background:#fef2f2;opacity:.35;transform:scale(.95);cursor:default;}
+.opt.dim{opacity:.15;border-color:#e2e8f0;cursor:default;}
+
+.fb{border-radius:14px;padding:14px;border:2px solid;display:none;flex-direction:column;gap:10px;}
+.fb.show{display:flex;}
+.fb.ok{background:#f0fdf4;border-color:#86efac;}
+.fb.ng{background:#fef2f2;border-color:#fca5a5;}
+.fb-msg{display:flex;align-items:center;gap:8px;font-weight:900;font-size:.88rem;color:#1e293b;}
+.fb-act{align-self:flex-end;font-weight:900;color:white;border:none;border-radius:12px;
+  padding:10px 22px;cursor:pointer;font-size:.85rem;border-bottom:4px solid;}
+.fb-act.ok{background:#22c55e;border-bottom-color:#16a34a;}
+.fb-act.ng{background:#ef4444;border-bottom-color:#b91c1c;}
+
+.done-s{text-align:center;padding:36px 16px;background:white;border-radius:20px;border:2px solid #e2e8f0;display:none;}
+.done-s.show{display:block;}
+.done-s h2{font-size:1.4rem;font-weight:900;color:#1e293b;margin:10px 0 8px;}
+.done-s .dsub{color:#64748b;font-size:.85rem;font-weight:700;margin-bottom:6px;}
+.done-s .sc{font-size:1.1rem;font-weight:900;color:#1d4ed8;margin-bottom:8px;}
+.done-s .hint2{color:#94a3b8;font-size:.78rem;font-weight:700;margin-bottom:20px;}
+.re-btn{background:#2563eb;color:white;font-weight:900;border:none;border-radius:14px;
+  padding:13px 32px;cursor:pointer;font-size:.95rem;box-shadow:0 4px 0 #1d4ed8;}
+</style>
+</head>
+<body>
+
+<!-- ══ 등록 화면 ══ -->
+<div id="setupPage" class="page">
+  <h1>✈️ 픽토그램을 등록해요</h1>
+  <p class="sub">각 카드를 눌러서 알맞은 픽토그램 사진을 선택하세요</p>
+  <p class="prog-txt" id="progTxt">0 / 10 완료</p>
+  <div class="prog-bar-wrap"><div class="prog-bar" id="progBar" style="width:0%"></div></div>
+  <div class="grid" id="grid"></div>
+  <button class="start-btn" id="startBtn" disabled onclick="startQuiz()">
+    ✈️ 퀴즈 시작하기
+  </button>
+</div>
+
+<!-- ══ 퀴즈 화면 ══ -->
+<div id="quizPage" class="page">
+  <h1>✈️ 공항에서 필요한 픽토그램</h1>
+  <p class="sub">글자를 보지 않고 오직 그림 신호만 보고 정답을 맞춰보세요!</p>
+  <div class="dots-wrap">
+    <div class="dots-line"></div>
+    <div class="dots-row" id="dotsRow"></div>
+  </div>
+  <div id="mainArea">
+    <div class="mission"><span class="m-tag" id="mTag"></span><p id="mDesc"></p></div>
+    <div class="opts" id="optsGrid"></div>
+    <div class="fb" id="fb">
+      <div class="fb-msg"><span id="fbIc"></span><span id="fbTxt"></span></div>
+      <button class="fb-act" id="fbBtn" onclick="fbAct()"></button>
+    </div>
+  </div>
+  <div class="done-s" id="doneS">
+    <div style="font-size:3rem">🏆</div>
+    <h2>🎉 9단계 공항 완전 정복!</h2>
+    <p class="dsub">한글 단서 없이 그림 신호만 보고 모든 단계를 완수했어요!</p>
+    <p class="sc" id="finalSc"></p>
+    <p class="hint2">이제 태블릿을 접고 '교실 런닝맨 게임'을 시작해 볼까요? 🏃‍♂️💨</p>
+    <button class="re-btn" onclick="restart()">↻ 처음부터 다시 연습하기</button>
+  </div>
+</div>
+
+<script>
+const ITEMS=[
+  {id:"공항",label:"공항"},
+  {id:"출발층",label:"출발층"},
+  {id:"도착층",label:"도착층"},
+  {id:"탑승수속",label:"탑승수속"},
+  {id:"보안검색",label:"보안검색"},
+  {id:"식당",label:"식당"},
+  {id:"카페",label:"카페"},
+  {id:"화장실",label:"화장실"},
+  {id:"안내소",label:"안내소"},
+  {id:"탑승구",label:"탑승구"},
+];
+const QUESTS=[
+  {id:1,stage:"공항 이동",emoji:"🚌",cid:"공항",opts:["공항","보안검색","식당","안내소"],
+   desc:"수학여행을 가기 위해 '포항경주공항'으로 갑니다. 공항을 의미하는 픽토그램을 찾으세요."},
+  {id:2,stage:"출발층 이동",emoji:"⬆️",cid:"출발층",opts:["도착층","화장실","출발층","카페"],
+   desc:"'포항경주공항'에서 출국장(출발층)으로 이동합니다. 상황에 맞는 픽토그램을 찾으세요."},
+  {id:3,stage:"탑승 수속",emoji:"🧳",cid:"탑승수속",opts:["보안검색","탑승수속","공항","탑승구"],
+   desc:"탑승권을 받고, 캐리어 가방을 비행기에 먼저 부치려고 합니다. 상황에 맞는 픽토그램을 찾으세요."},
+  {id:4,stage:"보안 검색",emoji:"🔍",cid:"보안검색",opts:["출발층","안내소","화장실","보안검색"],
+   desc:"기내 수화물을 검사하고, 몸을 검색하려고 합니다. 상황에 맞는 픽토그램을 찾으세요."},
+  {id:5,stage:"편의시설 ① 화장실",emoji:"🚻",cid:"화장실",opts:["식당","화장실","카페","탑승구"],
+   desc:"비행기를 타기 전에 갑자기 배가 아파요. 어디로 가야 할지 상황에 맞는 픽토그램을 찾으세요."},
+  {id:6,stage:"편의시설 ② 카페",emoji:"☕",cid:"카페",opts:["카페","안내소","도착층","탑승수속"],
+   desc:"비행기를 기다리는 동안 아이스바닐라라떼가 먹고 싶어요. 어디로 가야 할지 상황에 맞는 픽토그램을 찾으세요."},
+  {id:7,stage:"편의시설 ③ 식당",emoji:"🍱",cid:"식당",opts:["공항","화장실","식당","보안검색"],
+   desc:"비행기를 타기 전에 배가 고파서 돈가스를 점심으로 먹으려고 해요. 어디로 가야 할지 상황에 맞는 픽토그램을 찾으세요."},
+  {id:8,stage:"편의시설 ④ 안내소",emoji:"ℹ️",cid:"안내소",opts:["탑승구","안내소","출발층","카페"],
+   desc:"비행기 탑승 전, 탑승권을 분실했어요. 어디로 가야 할지 상황에 맞는 픽토그램을 찾으세요."},
+  {id:9,stage:"탑승구 이동",emoji:"🚪",cid:"탑승구",opts:["탑승수속","식당","도착층","탑승구"],
+   desc:"모든 준비 완료! 비행기를 타러 가기 위한 진짜 비행기 문(게이트) 그림 신호를 고르세요."},
+];
+
+const imgs={};
+let stg=0,sel=null,cor=null,scored=[],cnt=0;
+
+/* 등록 카드 생성 */
+const grid=document.getElementById("grid");
+ITEMS.forEach(item=>{
+  const c=document.createElement("div");
+  c.className="card"; c.id="c_"+item.id;
+  c.innerHTML=`
+    <span class="ck">✔</span>
+    <div class="lbl">${item.label}</div>
+    <div class="add-icon">＋</div>
+    <img class="prev" id="p_${item.id}" src="" alt="">
+    <input type="file" accept="image/*" onchange="loadImg(event,'${item.id}')">
+  `;
+  grid.appendChild(c);
+});
+
+function loadImg(e,id){
+  const f=e.target.files[0]; if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    imgs[id]=ev.target.result;
+    document.getElementById("p_"+id).src=ev.target.result;
+    document.getElementById("c_"+id).classList.add("done");
+    const n=Object.keys(imgs).length;
+    document.getElementById("progTxt").textContent=n+" / 10 완료";
+    document.getElementById("progBar").style.width=(n*10)+"%";
+    document.getElementById("startBtn").disabled=(n<10);
+  };
+  r.readAsDataURL(f);
+}
+
+function startQuiz(){
+  document.getElementById("setupPage").style.display="none";
+  document.getElementById("quizPage").style.display="block";
+  stg=0;sel=null;cor=null;scored=[];cnt=0;
+  render();
+}
+
+function buildDots(){
+  const row=document.getElementById("dotsRow"); row.innerHTML="";
+  QUESTS.forEach((q,i)=>{
+    const fin=scored.includes(q.id),cur=stg===i&&!document.getElementById("doneS").classList.contains("show");
+    const d=document.createElement("div"); d.className="dot";
+    d.innerHTML=`<div class="dot-c ${fin?"done":cur?"cur":""}">${fin?"✓":q.id}</div>
+      <div class="dot-lbl">${q.stage.split(" ")[0]}</div>`;
+    row.appendChild(d);
+  });
+}
+
+function render(){
+  document.getElementById("doneS").classList.remove("show");
+  document.getElementById("mainArea").style.display="block";
+  const q=QUESTS[stg];
+  document.getElementById("mTag").textContent=`${stg+1}단계 미션 · ${q.stage}`;
+  document.getElementById("mDesc").textContent=q.desc;
+  const og=document.getElementById("optsGrid"); og.innerHTML="";
+  q.opts.forEach((id,i)=>{
+    const b=document.createElement("button"); b.className="opt";
+    b.innerHTML=`<img src="${imgs[id]}" alt="">`;
+    b.onclick=()=>pick(i,id,q);
+    og.appendChild(b);
+  });
+  document.getElementById("fb").className="fb";
+  buildDots();
+}
+
+function pick(idx,id,q){
+  if(sel!==null)return;
+  sel=idx; cor=(id===q.cid);
+  if(cor){scored.push(q.id);cnt++;}
+  document.querySelectorAll(".opt").forEach((b,i)=>{
+    b.disabled=true;
+    const oid=q.opts[i];
+    if(oid===q.cid)b.classList.add("correct");
+    else if(i===idx)b.classList.add("wrong");
+    else b.classList.add("dim");
+  });
+  const fb=document.getElementById("fb");
+  fb.className="fb show "+(cor?"ok":"ng");
+  document.getElementById("fbIc").textContent=cor?"✅":"❌";
+  document.getElementById("fbTxt").textContent=cor
+    ?`딩동댕 정답! 이 그림 신호는 [ ${q.cid} ] 이에요 👏`
+    :"앗, 틀렸어요! 그림판을 다시 잘 보고 터치해 보세요.";
+  const btn=document.getElementById("fbBtn");
+  btn.className="fb-act "+(cor?"ok":"ng");
+  btn.textContent=cor?(stg===QUESTS.length-1?"최종 결과 확인 🏁":"다음 단계로 이동 ➔"):"다시 확인하기 ↻";
+  buildDots();
+}
+
+function fbAct(){
+  if(cor){
+    sel=null;cor=null;
+    if(stg<QUESTS.length-1){stg++;render();}
+    else{
+      document.getElementById("mainArea").style.display="none";
+      document.getElementById("doneS").classList.add("show");
+      document.getElementById("finalSc").textContent="정답 맞힌 수: "+cnt+" / "+QUESTS.length+" 개 ✨";
+      buildDots();
+    }
+  }else{sel=null;cor=null;render();}
+}
+
+function restart(){stg=0;sel=null;cor=null;scored=[];cnt=0;render();}
+</script>
+</body>
+</html>
